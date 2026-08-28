@@ -1,1 +1,272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Residual dinámico | Simulación Monte Carlo</title>
+	<style>
+		:root {
+			--ink: #18242b;
+			--muted: #617078;
+			--paper: #f5f7f2;
+			--panel: #ffffff;
+			--line: #dce4df;
+			--teal: #0e756c;
+			--teal-dark: #07564f;
+			--coral: #d9684d;
+			--gold: #e6a83c;
+			--shadow: 0 18px 45px rgba(24, 36, 43, .09);
+		}
+		* { box-sizing: border-box; }
+		body {
+			margin: 0;
+			color: var(--ink);
+			background: var(--paper);
+			font-family: Georgia, 'Times New Roman', serif;
+			background-image: linear-gradient(135deg, rgba(14,117,108,.05), transparent 38%), radial-gradient(circle at 80% 0%, rgba(230,168,60,.12), transparent 26%);
+		}
+		.app { max-width: 1440px; margin: 0 auto; padding: 42px clamp(18px, 4vw, 64px) 56px; }
+		header { display: flex; justify-content: space-between; align-items: end; gap: 24px; margin-bottom: 34px; }
+		.eyebrow { color: var(--teal); font: 700 11px/1.2 Arial, sans-serif; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; }
+		h1 { font-size: clamp(32px, 4vw, 58px); line-height: .98; font-weight: 500; margin: 0; max-width: 760px; }
+		header p { max-width: 365px; color: var(--muted); font: 15px/1.6 Arial, sans-serif; margin: 0; }
+		.header-actions { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
+		.export-button { background: transparent; color: var(--teal-dark); border: 1px solid var(--teal); }
+		.export-button:hover { background: var(--teal); color: #fff; }
+		.layout { display: grid; grid-template-columns: minmax(330px, 435px) minmax(0, 1fr); gap: 25px; align-items: start; }
+		.panel { background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); }
+		.form-panel { padding: 26px; }
+		.section-title { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid var(--line); padding-bottom: 12px; margin: 0 0 17px; font-size: 21px; font-weight: 500; }
+		.section-title span { color: var(--muted); font: 11px Arial, sans-serif; text-transform: uppercase; letter-spacing: 1px; }
+		.form-section + .form-section { margin-top: 28px; }
+		.fields { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 12px; }
+		.field { display: flex; flex-direction: column; gap: 6px; }
+		.field.full { grid-column: 1 / -1; }
+		label { color: #526168; font: 11px/1.35 Arial, sans-serif; font-weight: 700; }
+		input { width: 100%; border: 1px solid #cdd9d3; border-radius: 3px; background: #fbfcfa; color: var(--ink); padding: 10px 10px; font: 15px Georgia, serif; outline: none; }
+		input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(14,117,108,.12); }
+		.input-unit { position: relative; }
+		.input-unit input { padding-right: 43px; }
+		.unit { position: absolute; right: 10px; top: 11px; color: var(--muted); font: 11px Arial, sans-serif; }
+		.range-head, .range-row { display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr; gap: 8px; align-items: center; }
+		.range-head { color: var(--muted); font: 10px Arial, sans-serif; text-align: center; margin: 0 0 6px; }
+		.range-head span:first-child { text-align: left; }
+		.range-row { margin-bottom: 11px; }
+		.range-name { font: 13px/1.25 Georgia, serif; }
+		.range-row input { min-width: 0; padding: 9px 6px; text-align: right; font-size: 13px; }
+		.actions { display: flex; align-items: center; gap: 13px; margin-top: 27px; }
+		button { cursor: pointer; border: 0; border-radius: 3px; background: var(--teal); color: #fff; padding: 13px 22px; font: 700 12px Arial, sans-serif; letter-spacing: .6px; text-transform: uppercase; transition: background .2s, transform .2s; }
+		button:hover { background: var(--teal-dark); transform: translateY(-1px); }
+		.status { color: var(--muted); font: 12px Arial, sans-serif; }
+		.results { min-width: 0; }
+		.result-top { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
+		.kpi { padding: 20px 19px; min-height: 126px; border-top: 4px solid var(--teal); }
+		.kpi:nth-child(2) { border-top-color: var(--gold); }
+		.kpi:nth-child(3) { border-top-color: var(--coral); }
+		.kpi-label { color: var(--muted); font: 10px Arial, sans-serif; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+		.kpi-value { margin-top: 20px; font-size: clamp(22px, 3vw, 34px); line-height: 1; white-space: nowrap; }
+		.kpi-unit { color: var(--muted); font: 11px Arial, sans-serif; margin-top: 8px; }
+		.chart-panel { padding: 25px; }
+		.chart-head { display: flex; justify-content: space-between; gap: 15px; align-items: start; margin-bottom: 20px; }
+		.chart-head h2 { font-size: 25px; font-weight: 500; margin: 0 0 5px; }
+		.chart-head p { color: var(--muted); font: 12px Arial, sans-serif; margin: 0; }
+		.legend { display: flex; gap: 13px; flex-wrap: wrap; justify-content: end; color: var(--muted); font: 11px Arial, sans-serif; }
+		.legend i { display: inline-block; width: 18px; border-top: 2px dashed currentColor; margin: 0 4px 3px 0; }
+		.legend .p10 { color: var(--coral); } .legend .p50 { color: var(--teal); } .legend .p90 { color: var(--gold); }
+		canvas { display: block; width: 100%; height: 370px; background: linear-gradient(#fff, #f8faf8); border: 1px solid var(--line); cursor: crosshair; }
+		.chart-tip { min-height: 18px; color: var(--muted); font: 12px Arial, sans-serif; text-align: right; margin-top: 9px; }
+		.tornado-panel { margin-top: 12px; padding: 25px; }
+		.tornado-panel canvas { height: 390px; cursor: default; }
+		.tornado-note { color: var(--muted); font: 12px/1.5 Arial, sans-serif; margin: -10px 0 18px; }
+		.formula { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 12px; }
+		.formula div { background: #eaf1ed; padding: 15px; color: #3b514d; font: 12px/1.45 Arial, sans-serif; }
+		.formula strong { display: block; color: var(--teal-dark); font: 700 11px Arial, sans-serif; letter-spacing: .7px; margin-bottom: 5px; text-transform: uppercase; }
+		@media print {
+			@page { size: landscape; margin: 10mm; }
+			body { background: #fff; background-image: none; }
+			.app { max-width: none; padding: 0; }
+			.header-actions, .actions { display: none; }
+			.layout { grid-template-columns: minmax(260px, 31%) minmax(0, 1fr); gap: 14px; }
+			.panel { box-shadow: none; }
+			.form-panel, .chart-panel, .tornado-panel { padding: 14px; }
+			.result-top { gap: 7px; }
+			.kpi { min-height: 90px; padding: 12px; }
+			.kpi-value { margin-top: 12px; font-size: 22px; }
+			canvas { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+			.chart-panel, .tornado-panel, .formula, .kpi { break-inside: avoid; page-break-inside: avoid; }
+		}
+		@media (max-width: 900px) { header { display: block; } header p { margin-top: 16px; } .layout { grid-template-columns: 1fr; } }
+		@media (max-width: 600px) { .app { padding: 27px 14px 35px; } .form-panel, .chart-panel, .tornado-panel { padding: 18px; } .result-top { grid-template-columns: 1fr 1fr; } .result-top .kpi:first-child { grid-column: 1 / -1; } .range-head, .range-row { grid-template-columns: 1.1fr repeat(3, 1fr); gap: 5px; } .range-row input { font-size: 12px; } .chart-head { display: block; } .legend { justify-content: start; margin-top: 14px; } canvas { height: 280px; } .tornado-panel canvas { height: 470px; } .formula { grid-template-columns: 1fr; } }
+	</style>
+</head>
+<body>
+	<main class="app">
+		<header>
+			<div><div class="eyebrow">Análisis de inversión inmobiliaria</div><h1>Residual dinámico<br>con incertidumbre.</h1></div>
+			<div><p>Valuación probabilística del terreno mediante descuento de flujos de caja y 5.000 escenarios de mercado.</p><div class="header-actions"><button class="export-button" id="exportPdf" type="button" title="Abrir diálogo de impresión para exportar a PDF">⇩ Exportar PDF</button></div></div>
+		</header>
+		<div class="layout">
+			<section class="panel form-panel">
+				<div class="form-section">
+					<h2 class="section-title">Proyecto <span>Base determinista</span></h2>
+					<div class="fields">
+						<div class="field full"><label for="landArea">Superficie del terreno</label><div class="input-unit"><input id="landArea" type="number" value="10000" min="1" step="1"><span class="unit">m²</span></div></div>
+						<div class="field"><label for="units">Unidades a desarrollar</label><input id="units" type="number" value="120" min="1" step="1"></div>
+						<div class="field"><label for="saleArea">Área vendible por unidad</label><div class="input-unit"><input id="saleArea" type="number" value="85" min="1" step="1"><span class="unit">m²</span></div></div>
+						<div class="field"><label for="salePrice">Precio de venta medio</label><div class="input-unit"><input id="salePrice" type="number" value="28000" min="0" step="100"><span class="unit">MXN/m²</span></div></div>
+						<div class="field"><label for="constructionMonths">Duración de obra</label><div class="input-unit"><input id="constructionMonths" type="number" value="24" min="1" step="1"><span class="unit">meses</span></div></div>
+						<div class="field"><label for="indirectRate">Costos indirectos</label><div class="input-unit"><input id="indirectRate" type="number" value="12" min="0" step=".1"><span class="unit">%</span></div></div>
+						<div class="field"><label for="salesRate">Comercialización / ventas</label><div class="input-unit"><input id="salesRate" type="number" value="3" min="0" step=".1"><span class="unit">%</span></div></div>
+						<div class="field"><label for="profitRate">Utilidad requerida</label><div class="input-unit"><input id="profitRate" type="number" value="18" min="0" step=".1"><span class="unit">%</span></div></div>
+						<div class="field full"><label for="iterations">Iteraciones Monte Carlo</label><input id="iterations" type="number" value="5000" min="100" max="100000" step="100"></div>
+					</div>
+				</div>
+				<div class="form-section">
+					<h2 class="section-title">Variables inciertas <span>Distribuciones</span></h2>
+					<div class="range-head"><span></span><span>Mín.</span><span>Moda / media</span><span>Máx. / desv.</span></div>
+					<div class="range-row"><span class="range-name">Urbanización<br><small>MXN/m² terreno</small></span><input id="urbanMin" type="number" value="800" min="0"><input id="urbanMode" type="number" value="1200" min="0"><input id="urbanMax" type="number" value="1800" min="0"></div>
+					<div class="range-row"><span class="range-name">Edificación<br><small>MXN/m² construcción</small></span><input id="buildMin" type="number" value="14500" min="0"><input id="buildMode" type="number" value="17500" min="0"><input id="buildMax" type="number" value="22000" min="0"></div>
+					<div class="range-row"><span class="range-name">Ritmo de ventas<br><small>unidades / mes</small></span><input id="salesMin" type="number" value="2" min=".1" step=".1"><input id="salesMode" type="number" value="5" min=".1" step=".1"><input id="salesMax" type="number" value="10" min=".1" step=".1"></div>
+					<div class="range-row"><span class="range-name">WACC anual<br><small>media / desviación</small></span><input id="waccMean" type="number" value="12" step=".1"><input id="waccStd" type="number" value="2" min="0" step=".1"><span style="font:11px Arial;color:#617078;text-align:center">%</span></div>
+				</div>
+				<div class="actions"><button id="runButton" type="button">Ejecutar simulación</button><span class="status" id="status">Listo para simular</span></div>
+			</section>
+			<section class="results">
+				<div class="result-top">
+					<article class="panel kpi"><div class="kpi-label">Promedio VPN terreno</div><div class="kpi-value" id="meanValue">--</div><div class="kpi-unit">valor residual neto</div></article>
+					<article class="panel kpi"><div class="kpi-label">Mediana P50</div><div class="kpi-value" id="p50Value">--</div><div class="kpi-unit">escenario central</div></article>
+					<article class="panel kpi"><div class="kpi-label">Desviación estándar</div><div class="kpi-value" id="stdValue">--</div><div class="kpi-unit">volatilidad del valor</div></article>
+					<article class="panel kpi"><div class="kpi-label">P10 conservador</div><div class="kpi-value" id="p10Value">--</div><div class="kpi-unit">10% de escenarios queda debajo</div></article>
+					<article class="panel kpi"><div class="kpi-label">P90 optimista</div><div class="kpi-value" id="p90Value">--</div><div class="kpi-unit">90% de escenarios queda debajo</div></article>
+					<article class="panel kpi"><div class="kpi-label">Terreno unitario P50</div><div class="kpi-value" id="unitValue">--</div><div class="kpi-unit">MXN/m² de terreno</div></article>
+				</div>
+				<div class="panel chart-panel"><div class="chart-head"><div><h2>Distribución del VPN del terreno</h2><p id="chartSubtitle">Ejecuta una simulación para observar la dispersión de resultados.</p></div><div class="legend"><span class="p10"><i></i>P10</span><span class="p50"><i></i>P50</span><span class="p90"><i></i>P90</span></div></div><canvas id="histogram" width="900" height="370"></canvas><div class="chart-tip" id="chartTip">Pasa el cursor sobre el histograma para inspeccionar una frecuencia.</div></div>
+				<div class="formula"><div><strong>Flujo mensual</strong>Ingresos por ventas menos costos de obra uniformes y comercialización.</div><div><strong>Descuento</strong>WACC anual convertido a tasa mensual equivalente.</div><div><strong>Residual</strong>VPN de flujos menos utilidad del desarrollador descontada a mitad de obra.</div></div>
+				<div class="panel tornado-panel"><div class="chart-head"><div><h2>Diagrama de Tornado</h2><p>Análisis de sensibilidad del VPN ante cambios aislados en cada variable.</p></div><div class="legend"><span style="color:var(--coral)"><i></i>Escenario bajo</span><span style="color:var(--teal)"><i></i>Escenario alto</span></div></div><p class="tornado-note">Las variables se modifican una por una; las demás permanecen en su valor base. Barras más largas indican mayor impacto en el valor residual.</p><canvas id="tornado" width="900" height="390"></canvas></div>
+			</section>
+		</div>
+	</main>
+	<script>
+		'use strict';
+		const $ = (id) => document.getElementById(id);
+		const money = (value, decimals = 0) => Number.isFinite(value) ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: decimals, minimumFractionDigits: decimals }).format(value) : '--';
+		let simulation = null;
+		let chartState = null;
 
+		function value(id) { return Number($(id).value); }
+		function triangular(min, mode, max) {
+			const random = Math.random();
+			const split = (mode - min) / (max - min);
+			return random < split ? min + Math.sqrt(random * (max - min) * (mode - min)) : max - Math.sqrt((1 - random) * (max - min) * (max - mode));
+		}
+		function normal(mean, standardDeviation) {
+			let first = 0; let second = 0;
+			while (first === 0) first = Math.random();
+			while (second === 0) second = Math.random();
+			return mean + standardDeviation * Math.sqrt(-2 * Math.log(first)) * Math.cos(2 * Math.PI * second);
+		}
+		function percentile(sorted, rank) {
+			const position = (sorted.length - 1) * rank;
+			const lower = Math.floor(position); const upper = Math.ceil(position);
+			return sorted[lower] + (sorted[upper] - sorted[lower]) * (position - lower);
+		}
+		function residualForScenario(urbanCost, buildingCost, salesPace, annualWacc) {
+			const landArea = value('landArea'); const units = Math.floor(value('units')); const saleArea = value('saleArea'); const salePrice = value('salePrice');
+			const months = Math.floor(value('constructionMonths')); const indirectRate = value('indirectRate') / 100; const salesRate = value('salesRate') / 100; const profitRate = value('profitRate') / 100;
+			const monthlyRate = Math.pow(1 + Math.max(-0.99, annualWacc), 1 / 12) - 1;
+			const directCosts = landArea * urbanCost + units * saleArea * buildingCost; const totalCosts = directCosts * (1 + indirectRate); const constructionCost = totalCosts / months;
+			const projectMonths = Math.max(months, Math.ceil(units / salesPace)); let remainingUnits = units; let netPresentValue = 0;
+			for (let month = 1; month <= projectMonths; month += 1) {
+				const sold = Math.min(remainingUnits, salesPace); remainingUnits -= sold; const revenue = sold * saleArea * salePrice;
+				const monthlyConstructionCost = month <= months ? constructionCost : 0;
+				netPresentValue += (revenue - revenue * salesRate - monthlyConstructionCost) / Math.pow(1 + monthlyRate, month);
+			}
+			return netPresentValue - totalCosts * profitRate / Math.pow(1 + monthlyRate, months / 2);
+		}
+		function calculateSensitivity() {
+			const base = residualForScenario(value('urbanMode'), value('buildMode'), value('salesMode'), value('waccMean') / 100);
+			const variables = [
+				['Costo urbanización', value('urbanMin'), value('urbanMax'), (item) => residualForScenario(item, value('buildMode'), value('salesMode'), value('waccMean') / 100)],
+				['Costo edificación', value('buildMin'), value('buildMax'), (item) => residualForScenario(value('urbanMode'), item, value('salesMode'), value('waccMean') / 100)],
+				['Ritmo de ventas', value('salesMin'), value('salesMax'), (item) => residualForScenario(value('urbanMode'), value('buildMode'), item, value('waccMean') / 100)],
+				['WACC anual', value('waccMean') - value('waccStd'), value('waccMean') + value('waccStd'), (item) => residualForScenario(value('urbanMode'), value('buildMode'), value('salesMode'), item / 100)]
+			];
+			return variables.map(([label, low, high, calculate]) => ({ label, low, high, lowValue: calculate(low), highValue: calculate(high), base })).sort((first, second) => Math.max(Math.abs(second.lowValue - second.base), Math.abs(second.highValue - second.base)) - Math.max(Math.abs(first.lowValue - first.base), Math.abs(first.highValue - first.base)));
+		}
+		function inputsAreValid() {
+			const ids = ['landArea','units','saleArea','salePrice','constructionMonths','indirectRate','salesRate','profitRate','iterations','urbanMin','urbanMode','urbanMax','buildMin','buildMode','buildMax','salesMin','salesMode','salesMax','waccMean','waccStd'];
+			if (ids.some((id) => !Number.isFinite(value(id)))) return false;
+			return value('urbanMin') <= value('urbanMode') && value('urbanMode') <= value('urbanMax') && value('buildMin') <= value('buildMode') && value('buildMode') <= value('buildMax') && value('salesMin') <= value('salesMode') && value('salesMode') <= value('salesMax');
+		}
+		function runSimulation() {
+			if (!inputsAreValid()) { $('status').textContent = 'Revisa los rangos y valores'; return; }
+			const iterations = Math.min(100000, Math.max(100, Math.floor(value('iterations'))));
+			const landArea = value('landArea'); const units = Math.floor(value('units')); const saleArea = value('saleArea'); const salePrice = value('salePrice');
+			const months = Math.floor(value('constructionMonths')); const indirectRate = value('indirectRate') / 100; const salesRate = value('salesRate') / 100; const profitRate = value('profitRate') / 100;
+			const results = new Float64Array(iterations); const grossRevenue = units * saleArea * salePrice; const totalSellableArea = units * saleArea;
+			for (let index = 0; index < iterations; index += 1) {
+				const urbanCost = triangular(value('urbanMin'), value('urbanMode'), value('urbanMax'));
+				const buildingCost = triangular(value('buildMin'), value('buildMode'), value('buildMax'));
+				const salesPace = triangular(value('salesMin'), value('salesMode'), value('salesMax'));
+				const annualWacc = Math.max(-0.99, normal(value('waccMean') / 100, value('waccStd') / 100));
+				const monthlyRate = Math.pow(1 + annualWacc, 1 / 12) - 1;
+				const directCosts = landArea * urbanCost + totalSellableArea * buildingCost;
+				const indirectCosts = directCosts * indirectRate; const constructionCost = (directCosts + indirectCosts) / months;
+				const projectMonths = Math.max(months, Math.ceil(units / salesPace));
+				let remainingUnits = units; let netPresentValue = 0;
+				for (let month = 1; month <= projectMonths; month += 1) {
+					const sold = Math.min(remainingUnits, salesPace); remainingUnits -= sold;
+					const revenue = sold * saleArea * salePrice; const marketingCost = revenue * salesRate;
+					const monthlyConstructionCost = month <= months ? constructionCost : 0;
+					netPresentValue += (revenue - marketingCost - monthlyConstructionCost) / Math.pow(1 + monthlyRate, month);
+				}
+				const developerProfit = (directCosts + indirectCosts) * profitRate;
+				results[index] = netPresentValue - developerProfit / Math.pow(1 + monthlyRate, months / 2);
+			}
+			const sorted = Float64Array.from(results).sort(); let sum = 0;
+			for (const result of results) sum += result;
+			const mean = sum / iterations; let variance = 0;
+			for (const result of results) variance += (result - mean) ** 2;
+			const p10 = percentile(sorted, .1); const p50 = percentile(sorted, .5); const p90 = percentile(sorted, .9); const standardDeviation = Math.sqrt(variance / iterations);
+			simulation = { results, sorted, mean, standardDeviation, p10, p50, p90, iterations, grossRevenue, landArea };
+			$('meanValue').textContent = money(mean); $('p50Value').textContent = money(p50); $('stdValue').textContent = money(standardDeviation); $('p10Value').textContent = money(p10); $('p90Value').textContent = money(p90); $('unitValue').textContent = money(p50 / landArea);
+			$('status').textContent = `${iterations.toLocaleString('es-MX')} escenarios completados`; $('chartSubtitle').textContent = `VPN neto, con utilidad descontada. Ingresos brutos: ${money(grossRevenue)}.`;
+			drawHistogram(); drawTornado();
+		}
+		function drawTornado() {
+			const canvas = $('tornado'); const context = canvas.getContext('2d'); const width = canvas.clientWidth; const height = canvas.clientHeight; const ratio = window.devicePixelRatio || 1;
+			canvas.width = width * ratio; canvas.height = height * ratio; context.setTransform(ratio, 0, 0, ratio, 0, 0); context.clearRect(0, 0, width, height);
+			const sensitivity = calculateSensitivity(); const padding = { left: 132, right: 28, top: 24, bottom: 31 }; const rowHeight = (height - padding.top - padding.bottom) / sensitivity.length; const center = padding.left + (width - padding.left - padding.right) / 2;
+			let largestImpact = 1; sensitivity.forEach((item) => { largestImpact = Math.max(largestImpact, Math.abs(item.lowValue - item.base), Math.abs(item.highValue - item.base)); });
+			const scale = (width - padding.left - padding.right) / 2 / largestImpact; context.font = '11px Arial'; context.textAlign = 'center'; context.fillStyle = '#617078'; context.fillText('VPN base: ' + money(sensitivity[0].base), center, 13);
+			context.strokeStyle = '#aebdb7'; context.setLineDash([3, 3]); context.beginPath(); context.moveTo(center, padding.top - 3); context.lineTo(center, height - padding.bottom + 3); context.stroke(); context.setLineDash([]);
+			sensitivity.forEach((item, index) => {
+				const y = padding.top + index * rowHeight + rowHeight / 2; const lowDelta = (item.lowValue - item.base) * scale; const highDelta = (item.highValue - item.base) * scale;
+				context.textAlign = 'right'; context.fillStyle = '#374a4a'; context.font = '12px Arial'; context.fillText(item.label, padding.left - 12, y + 4);
+				context.fillStyle = '#d9684d'; context.fillRect(Math.min(center, center + lowDelta), y - 13, Math.abs(lowDelta), 12); context.fillStyle = '#0e756c'; context.fillRect(Math.min(center, center + highDelta), y + 2, Math.abs(highDelta), 12);
+				context.textAlign = 'left'; context.fillStyle = '#617078'; context.font = '10px Arial'; context.fillText(money(item.lowValue), padding.left, y - 17); context.fillText(money(item.highValue), padding.left, y + 29);
+			});
+			context.textAlign = 'center'; context.fillStyle = '#617078'; context.font = '10px Arial'; context.fillText('Menor VPN', padding.left + 35, height - 10); context.fillText('Mayor VPN', width - padding.right - 35, height - 10);
+		}
+		function drawHistogram() {
+			const canvas = $('histogram'); const context = canvas.getContext('2d'); const width = canvas.clientWidth; const height = canvas.clientHeight; const ratio = window.devicePixelRatio || 1;
+			canvas.width = width * ratio; canvas.height = height * ratio; context.setTransform(ratio, 0, 0, ratio, 0, 0);
+			const padding = { left: 58, right: 22, top: 20, bottom: 42 }; const plotWidth = width - padding.left - padding.right; const plotHeight = height - padding.top - padding.bottom; const bins = 34;
+			const min = simulation.sorted[0]; const max = simulation.sorted[simulation.sorted.length - 1]; const span = max - min || 1; const counts = new Uint32Array(bins);
+			for (const result of simulation.results) counts[Math.min(bins - 1, Math.floor(((result - min) / span) * bins))] += 1;
+			const maxCount = Math.max(...counts); const barWidth = plotWidth / bins - 2; context.clearRect(0, 0, width, height);
+			context.strokeStyle = '#dce4df'; context.lineWidth = 1; context.font = '11px Arial'; context.fillStyle = '#617078';
+			for (let tick = 0; tick <= 4; tick += 1) { const y = padding.top + plotHeight - (tick / 4) * plotHeight; context.beginPath(); context.moveTo(padding.left, y); context.lineTo(width - padding.right, y); context.stroke(); context.fillText(Math.round(maxCount * tick / 4).toLocaleString('es-MX'), 8, y + 4); }
+			counts.forEach((count, index) => { const x = padding.left + index * (plotWidth / bins) + 1; const barHeight = (count / maxCount) * plotHeight; context.fillStyle = '#72aaa0'; context.fillRect(x, padding.top + plotHeight - barHeight, barWidth, barHeight); });
+			context.fillStyle = '#617078'; context.fillText(money(min), padding.left, height - 13); context.textAlign = 'right'; context.fillText(money(max), width - padding.right, height - 13); context.textAlign = 'left';
+			const lines = [{ value: simulation.p10, color: '#d9684d', label: 'P10' }, { value: simulation.p50, color: '#0e756c', label: 'P50' }, { value: simulation.p90, color: '#e6a83c', label: 'P90' }];
+			lines.forEach((line) => { const x = padding.left + ((line.value - min) / span) * plotWidth; context.strokeStyle = line.color; context.setLineDash([5, 4]); context.beginPath(); context.moveTo(x, padding.top); context.lineTo(x, padding.top + plotHeight); context.stroke(); context.setLineDash([]); context.fillStyle = line.color; context.font = '700 11px Arial'; context.fillText(line.label, Math.min(x + 5, width - 30), padding.top + 13); });
+			chartState = { padding, plotWidth, min, span, counts, maxCount, width, height };
+		}
+		$('histogram').addEventListener('mousemove', (event) => { if (!chartState) return; const rectangle = event.currentTarget.getBoundingClientRect(); const x = event.clientX - rectangle.left; const index = Math.floor((x - chartState.padding.left) / (chartState.plotWidth / chartState.counts.length)); if (index >= 0 && index < chartState.counts.length) { const from = chartState.min + chartState.span * index / chartState.counts.length; const to = chartState.min + chartState.span * (index + 1) / chartState.counts.length; $('chartTip').textContent = `${money(from)} a ${money(to)}: ${chartState.counts[index].toLocaleString('es-MX')} escenarios`; } });
+		$('histogram').addEventListener('mouseleave', () => { $('chartTip').textContent = 'Pasa el cursor sobre el histograma para inspeccionar una frecuencia.'; });
+		$('runButton').addEventListener('click', runSimulation); $('exportPdf').addEventListener('click', () => { if (!simulation) runSimulation(); window.print(); }); window.addEventListener('resize', () => { if (simulation) { drawHistogram(); drawTornado(); } }); runSimulation();
+	</script>
+
+</body>
+</html>
