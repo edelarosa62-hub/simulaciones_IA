@@ -95,8 +95,51 @@
 			canvas { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 			.chart-panel, .tornado-panel, .formula, .kpi { break-inside: avoid; page-break-inside: avoid; }
 		}
-		@media (max-width: 900px) { header { display: block; } header p { margin-top: 16px; } .layout { grid-template-columns: 1fr; } }
-		@media (max-width: 600px) { .app { padding: 27px 14px 35px; } .form-panel, .chart-panel, .tornado-panel { padding: 18px; } .result-top { grid-template-columns: 1fr 1fr; } .result-top .kpi:first-child { grid-column: 1 / -1; } .range-head, .range-row { grid-template-columns: 1.1fr repeat(3, 1fr); gap: 5px; } .range-row input { font-size: 12px; } .chart-head { display: block; } .legend { justify-content: start; margin-top: 14px; } canvas { height: 280px; } .tornado-panel canvas { height: 470px; } .formula { grid-template-columns: 1fr; } }
+		@media (max-width: 900px) {
+			header { display: block; }
+			header p { margin-top: 16px; }
+			.layout { grid-template-columns: 1fr; }
+			.result-top { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+		}
+		@media (max-width: 600px) {
+			.app { padding: 24px 14px 32px; }
+			header { gap: 14px; margin-bottom: 22px; }
+			h1 { font-size: clamp(28px, 8vw, 40px); }
+			.eyebrow { letter-spacing: 1.5px; }
+			.form-panel, .chart-panel, .tornado-panel { padding: 16px; }
+			.fields { grid-template-columns: 1fr; }
+			.result-top { grid-template-columns: 1fr; }
+			.kpi { min-height: auto; }
+			.kpi-value { margin-top: 12px; font-size: clamp(22px, 6vw, 28px); white-space: normal; }
+			.range-head { display: none; }
+			.range-row {
+				grid-template-columns: 1fr;
+				gap: 8px;
+				padding: 10px 0;
+				border-bottom: 1px solid var(--line);
+			}
+			.range-row:last-child { border-bottom: 0; }
+			.range-name { font-size: 14px; }
+			.range-row input { text-align: left; }
+			.actions { flex-direction: column; align-items: stretch; }
+			button { width: 100%; }
+			.status { text-align: center; }
+			.chart-head { display: block; }
+			.chart-head h2 { font-size: 20px; }
+			.legend { justify-content: start; margin-top: 12px; }
+			canvas { height: 260px; }
+			.tornado-panel canvas { height: 420px; }
+			.formula { grid-template-columns: 1fr; }
+		}
+		@media (max-width: 420px) {
+			header p { font-size: 13px; }
+			.form-panel, .chart-panel, .tornado-panel { padding: 14px; }
+			.section-title { font-size: 18px; }
+			.range-name small { display: block; }
+			.legend { gap: 8px; }
+			canvas { height: 230px; }
+			.tornado-panel canvas { height: 360px; }
+		}
 	</style>
 </head>
 <body>
